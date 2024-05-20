@@ -11,11 +11,10 @@
 <script setup lang="ts">
 import { type UploadFile } from 'element-plus'
 import { defineProps, defineEmits, ref } from 'vue'
-const feature = ref<UploadFile | null>(null);
-const emit = defineEmits(['handleAdd'])
-const handleChange = (f : UploadFile) => {
-  const file = f;
-  // emit("getFile", file);
+
+const emit = defineEmits(['file'])
+const handleChange = (file : UploadFile) => {
+  emit("file", file);
 }
 </script>
 <style lang="less" scoped></style>

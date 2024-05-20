@@ -1,6 +1,7 @@
 <template>
   <main>
     <FileReceive @file="handleFile" />
+    <span>{{ fileName }}</span>
     <FileOperate />
   </main>
 </template>
@@ -8,16 +9,20 @@
 <script setup lang="ts">
 import FileReceive from '../components/file-receive.vue'
 import FileOperate from '../components/file-operate.vue'
-import { defineProps } from 'vue'
+import { ref } from 'vue'
 
-// 定义组件的 props，接收子组件传递的文件数据
-const props = defineProps<{
-  file: File | null
-}>()
+const fileName = ref('');
 
 // 在这里处理接收到的文件数据
 const handleFile = (file: File) => {
   console.log('Received file:', file)
+  fileName.value = file.name
+  uploadFille(file)
+}
+
+function uploadFille(file : File){
+  // 将文件传递到后端处理
+  
 }
 </script>
 
