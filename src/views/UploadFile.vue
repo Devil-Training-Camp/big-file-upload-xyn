@@ -11,7 +11,7 @@ import FileReceive from '../components/file-receive.vue'
 import FileOperate from '../components/file-operate.vue'
 import { ref } from 'vue'
 
-const fileName = ref('');
+const fileName = ref<String>('');
 
 // 在这里处理接收到的文件数据
 const handleFile = (file: File) => {
