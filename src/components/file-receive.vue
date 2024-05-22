@@ -12,7 +12,7 @@
 import { type UploadFile } from 'element-plus'
 import { defineProps, defineEmits, ref } from 'vue'
 
-const emit = defineEmits(['file'])
+const emit = defineEmits<{(e: 'file', value: UploadFile): void}>()
 const handleChange = (file : UploadFile) => {
   emit("file", file);
 }
