@@ -64,12 +64,12 @@ function uploadFile() {
   isUploaded.value = true;
 }
 
-// 判断是否已经上传过
+// TODO 判断是否已经上传过
 function isExisted(hash: string): boolean{
   return true;
 }
 
-// 计算hash值
+// TODO 计算hash值
 function calculateHash(file : Blob) : string{
   return 'hashValue'
 }
@@ -96,7 +96,7 @@ function getChunkList() : IFileChunk[]{
   return chunkList
 }
 
-// 上传分片到服务器
+// TODO 上传分片到服务器
 function uploadChunk(chunk : IFileChunk):boolean{
   return true
 }
