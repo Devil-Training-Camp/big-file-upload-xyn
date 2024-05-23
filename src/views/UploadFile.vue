@@ -2,7 +2,7 @@
   <main>
     <FileReceive @file="handleFile" />
     <span>{{ fileName }}</span>
-    <FileOperate @upload="handleClick" :isUploaded="isUploaded"/>
+    <FileOperate @upload="handleClick" :isUploaded="isUploaded" />
   </main>
 </template>
 
@@ -13,9 +13,17 @@ import { ref } from 'vue'
 import type { UploadFile } from 'element-plus'
 import { ElMessage } from 'element-plus'
 
+const progress = ref<Number>();
 const fileName = ref<String>('')
 const isUploaded = ref<boolean>(false)
-let curFile = ref<UploadFile | null>(null)
+const chunkSize = 1024 * 1024 * 1
+let curFile = ref<UploadFile>()
+
+interface IFileChunk {
+  file: Blob;
+  chunkIndex: number;
+  uploaded: boolean;
+}
 
 // 接收文件
 const handleFile = (f: UploadFile) => {
@@ -29,21 +37,68 @@ const handleClick = (upload: boolean) => {
     uploadFile()
   }
 }
-//TODO  文件进度传递
+
 function uploadFile() {
   if (!curFile.value) {
     // ElMessage.error('请点击选择或拖入需要上传的文件')
     alert('请点击选择或拖入需要上传的文件')
     return
   }
-  // TODO 文件分片
-  // ？完全分片完成之后再上传还是分一片就传一片
-  // 上传文件
-  // 如何算上传成功？ 保存文件到本地？ 分片之后保存的样式是一片一个？
-  
+  // 文件分片
+  const chunkList = getChunkList()
+  // TODO 计算每一个分片的计算hash值用于判断是否进行上传
+  // 获取每一个文件上传分频 判断是否已经上传过，没上传的上传，之后更新进度
+  chunkList.forEach((chunk)=>{
+    const hash = calculateHash(chunk.file);
+    const isAlreadyUploaded = isExisted(hash); // 检查哈希是否已经存在于服务器中
+    if (!isAlreadyUploaded) {
+      // 上传文件分片
+      uploadChunk(chunk);
+    }
+  })
+  // TODO 上传文件
+  // 如何算上传成功？ 保存文件到本地？ 分片进行保存
 
-  // 文件上传成功 传递结束标志
+
+  // 文件上传成功 传递结束标志，更新进度
   isUploaded.value = true;
+}
+
+// 判断是否已经上传过
+function isExisted(hash: string): boolean{
+  return true;
+}
+
+// 计算hash值
+function calculateHash(file : Blob) : string{
+  return 'hashValue'
+}
+
+// 文件分片
+function getChunkList() : IFileChunk[]{
+  let chunkList : IFileChunk[] = [];
+  let start = 0;
+  let index = 0;
+  if (curFile.value?.raw == undefined || curFile.value?.size == undefined) {
+    return [];
+  }
+
+  while(start <= curFile.value.raw.size) {
+    let curChunk = curFile.value.raw.slice(start, start + chunkSize)
+    chunkList.push({
+      file: curChunk,
+      chunkIndex: index,
+      uploaded: false
+    })
+    index++;
+    start += chunkSize
+  }
+  return chunkList
+}
+
+// 上传分片到服务器
+function uploadChunk(chunk : IFileChunk):boolean{
+  return true
 }
 </script>
 

@@ -20,7 +20,7 @@ const uploaded = defineProps({
 
 // 根据上传进度更改文字 上传 或 继续，暂停不变
 const toggleUploadText = computed(() => {
-  return isUpload ? '上传' : '暂停'
+  return isUpload.value ? '上传' : '暂停'
 })
 
 // 如果进度不为0，则开始显示文字，根据文件上传结束节点调换显示文字
