@@ -1,19 +1,22 @@
-// 引入所需的模块
-import Koa from 'koa';
-import { koaBody } from 'koa-body';
-import { uploadFile } from './upload';
-import { checkHash } from './hash';
+import { Context } from 'koa';
+import fs from 'fs';
+import path from 'path';
 
-const app = new Koa();
+export async function uploadChunk(ctx: Context) {
+  const { files, body } = ctx.request;
+  if (!files || !files.chunk) {
+    ctx.throw(400, 'No chunk uploaded');
+  }
 
-// 使用 koa-body 中间件来处理文件上传
-app.use(koaBody({ multipart: true }));
+  // TODO
+  const chunk = files.chunk as any;
+  const { start, end } = body;
+  const chunkPath = path.join(__dirname, 'uploads', `chunk-${start}-${end}`);
 
-// 绑定文件上传路由
-app.post('/upload', uploadFile);
+  // 保存分片到服务器
+  const reader = fs.createReadStream(chunk.path);
+  const writer = fs.createWriteStream(chunkPath);
+  reader.pipe(writer);
 
-// 绑定哈希值检查路由
-app.get('/checkHash', checkHash);
-
-export default app;
-
+  ctx.body = { message: '分片上传成功' };
+}

@@ -11,7 +11,7 @@ import FileReceive from '../components/file-receive.vue'
 import FileOperate from '../components/file-operate.vue'
 import { ref } from 'vue'
 import type { UploadFile } from 'element-plus'
-import { SparkMD5 } from 'spark-md5'
+import SparkMD5 from 'spark-md5'
 
 const progress = ref<Number>()
 const fileName = ref<String>('')
@@ -23,6 +23,8 @@ interface IFileChunk {
   file: Blob
   chunkIndex: number
   uploaded: boolean
+  start: number
+  end: number
 }
 
 // 接收文件
@@ -56,9 +58,6 @@ function uploadFile() {
       uploadChunk(chunk)
     }
   })
-  // TODO 上传文件
-  // 如何算上传成功？ 保存文件到本地？ 分片进行保存
-
   // 文件上传成功 传递结束标志，更新进度
   isUploaded.value = true
 }
@@ -66,20 +65,22 @@ function uploadFile() {
 // 判断是否已经上传过
 async function isExisted(hash: string): Promise<boolean> {
   try {
-    const response = await fetch(`http://localhost:3000/checkHash?hash=${hash}`);
-    const data = await response.json();
-    return data.exists;
+    const response = await fetch(`http://localhost:3000/checkHash?hash=${hash}`)
+    const data = await response.json()
+    return data.exists
   } catch (error) {
-    console.error('isExisted error:' + error);
-    return false;
+    console.error('isExisted error:' + error)
+    return false
   }
 }
 
-// TODO 计算hash值
+// 计算hash值
 function calculateHash(file: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     const spark = new SparkMD5()
-    spark.append(file)
+    // TODO 因为需要string类型的变量来计算hash，不知道这样是否可行
+    const str = await file.text()
+    spark.append(str)
     resolve(spark.end())
   })
 }
@@ -87,7 +88,8 @@ function calculateHash(file: Blob): Promise<string> {
 // 文件分片
 function getChunkList(): IFileChunk[] {
   let chunkList: IFileChunk[] = []
-  let start = 0
+  let start = 0,
+    end = 0
   let index = 0
   if (curFile.value?.raw == undefined || curFile.value?.size == undefined) {
     return []
@@ -95,20 +97,41 @@ function getChunkList(): IFileChunk[] {
 
   while (start <= curFile.value.raw.size) {
     let curChunk = curFile.value.raw.slice(start, start + chunkSize)
+    index++
+    start += chunkSize
     chunkList.push({
       file: curChunk,
       chunkIndex: index,
-      uploaded: false
+      uploaded: false,
+      start: start,
+      end: start + chunkSize
     })
-    index++
-    start += chunkSize
   }
   return chunkList
 }
 
-// TODO 上传分片到服务器
-function uploadChunk(chunk: IFileChunk): boolean {
-  return true
+// 上传分片到服务器
+async function uploadChunk(chunk: IFileChunk) {
+  const formData = new FormData()
+  formData.append('chunk', chunk.file)
+  // TODO
+  formData.append('start', chunk.start.toString())
+  formData.append('end', chunk.end.toString())
+
+  try {
+    const response = await fetch('http://localhost:3000/uploadChunk', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error('chunk上传失败')
+    }
+
+    console.log('chunk上传成功')
+  } catch (error) {
+    console.error('uploadChunk error:' + error)
+  }
 }
 </script>
 
