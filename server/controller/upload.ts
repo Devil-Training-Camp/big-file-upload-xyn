@@ -8,7 +8,7 @@ export async function uploadChunk(ctx: Context) {
     ctx.throw(400, 'No chunk uploaded');
   }
 
-  // TODO
+  // 
   const chunk = files.chunk as any;
   const { start, end } = body;
   const chunkPath = path.join(__dirname, 'uploads', `chunk-${start}-${end}`);
