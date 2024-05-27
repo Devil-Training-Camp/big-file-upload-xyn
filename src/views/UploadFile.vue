@@ -42,7 +42,6 @@ const handleClick = (upload: boolean) => {
     return
   }
   isPaused = true
-  uploadPause()
 }
 
 async function uploadFile() {
@@ -149,8 +148,6 @@ async function uploadChunk(chunk: IFileChunk) {
     console.error('uploadChunk error:' + error)
   }
 }
-
-function uploadPause() {}
 </script>
 
 <style lang="less" scoped></style>
