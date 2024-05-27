@@ -18,6 +18,8 @@ const fileName = ref<String>('')
 const isUploaded = ref<boolean>(false)
 const chunkSize = 1024 * 1024 * 1
 let curFile = ref<UploadFile>()
+let isPaused = false
+let chunkIndex = 0
 
 interface IFileChunk {
   file: Blob
@@ -37,27 +39,34 @@ const handleFile = (f: UploadFile) => {
 const handleClick = (upload: boolean) => {
   if (upload) {
     uploadFile()
+    return
   }
+  isPaused = true
+  uploadPause()
 }
 
-function uploadFile() {
+async function uploadFile() {
   if (!curFile.value) {
     // ElMessage.error('请点击选择或拖入需要上传的文件')
     alert('请点击选择或拖入需要上传的文件')
     return
   }
   // 文件分片
-  const chunkList = getChunkList()
   // 计算每一个分片的计算hash值用于判断是否进行上传
   // 获取每一个文件上传分片 判断是否已经上传过，没上传的上传，之后更新进度
-  chunkList.forEach(async (chunk) => {
+  const chunkList = getChunkList()
+  for (let i = chunkIndex; i < chunkList.length; i++) {
+    if (isPaused) {
+      chunkIndex = i
+      break
+    }
+    const chunk = chunkList[i]
     const hash = calculateHash(chunk.file)
-    const isAlreadyUploaded = isExisted(await hash) // 检查哈希是否已经存在于服务器中
+    const isAlreadyUploaded = isExisted(await hash)
     if (!isAlreadyUploaded) {
-      // 上传文件分片
       uploadChunk(chunk)
     }
-  })
+  }
   // 文件上传成功 传递结束标志，更新进度
   isUploaded.value = true
 }
@@ -76,12 +85,19 @@ async function isExisted(hash: string): Promise<boolean> {
 
 // 计算hash值
 function calculateHash(file: Blob): Promise<string> {
-  return new Promise(async (resolve, reject) => {
-    const spark = new SparkMD5()
-    // TODO 因为需要string类型的变量来计算hash，不知道这样是否可行
-    const str = await file.text()
-    spark.append(str)
-    resolve(spark.end())
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      if (event.target) {
+        const arrayBuffer = event.target.result as ArrayBuffer
+        const spark = new SparkMD5.ArrayBuffer()
+        spark.append(arrayBuffer)
+        resolve(spark.end())
+      }
+      reject(new Error('文件为空'))
+    }
+    reader.onerror = reject
+    reader.readAsArrayBuffer(file)
   })
 }
 
@@ -133,6 +149,8 @@ async function uploadChunk(chunk: IFileChunk) {
     console.error('uploadChunk error:' + error)
   }
 }
+
+function uploadPause() {}
 </script>
 
 <style lang="less" scoped></style>
