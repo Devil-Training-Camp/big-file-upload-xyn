@@ -2,7 +2,8 @@
   <main>
     <FileReceive @file="handleFile" />
     <span>{{ fileName }}</span>
-    <FileOperate @upload="handleClick" :isUploaded="isUploaded" />
+    <el-progress :percentage="uploadProgress"></el-progress>
+    <FileOperate @upload="handleClick" :isUploaded="isUploaded" :uploadProgress="uploadProgress" />
   </main>
 </template>
 
@@ -13,13 +14,14 @@ import { ref } from 'vue'
 import type { UploadFile } from 'element-plus'
 import SparkMD5 from 'spark-md5'
 
-const progress = ref<Number>()
 const fileName = ref<String>('')
 const isUploaded = ref<boolean>(false)
 const chunkSize = 1024 * 1024 * 1
 let curFile = ref<UploadFile>()
 let isPaused = false
 let chunkIndex = 0
+let uploadProgress = ref<number>(0)
+let uploadTotalProgress = ref<number>(0)
 
 interface IFileChunk {
   file: Blob
@@ -37,23 +39,24 @@ const handleFile = (f: UploadFile) => {
 
 // 点击上传时开始上传文件
 const handleClick = (upload: boolean) => {
+  if (!curFile.value) {
+    // ElMessage.error('请点击选择或拖入需要上传的文件')
+    alert('请点击选择或拖入需要上传的文件')
+    return false
+  }
   if (upload) {
     uploadFile()
-    return
+    return true
   }
   isPaused = true
 }
 
 async function uploadFile() {
-  if (!curFile.value) {
-    // ElMessage.error('请点击选择或拖入需要上传的文件')
-    alert('请点击选择或拖入需要上传的文件')
-    return
-  }
   // 文件分片
   // 计算每一个分片的计算hash值用于判断是否进行上传
   // 获取每一个文件上传分片 判断是否已经上传过，没上传的上传，之后更新进度
   const chunkList = getChunkList()
+  uploadTotalProgress.value = chunkList.length
   for (let i = chunkIndex; i < chunkList.length; i++) {
     if (isPaused) {
       chunkIndex = i
@@ -63,8 +66,9 @@ async function uploadFile() {
     const hash = calculateHash(chunk.file)
     const isAlreadyUploaded = isExisted(await hash)
     if (!isAlreadyUploaded) {
-      uploadChunk(chunk)
+      await uploadChunk(chunk)
     }
+    uploadProgress.value = ((i + 1) / chunkList.length) * 100
   }
   // 文件上传成功 传递结束标志，更新进度
   isUploaded.value = true

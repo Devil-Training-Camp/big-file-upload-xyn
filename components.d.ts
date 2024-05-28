@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ElButton: typeof import('element-plus/es')['ElButton']
+    ElProgress: typeof import('element-plus/es')['ElProgress']
     ElUpload: typeof import('element-plus/es')['ElUpload']
     FileOperate: typeof import('./src/components/file-operate.vue')['default']
     FileReceive: typeof import('./src/components/file-receive.vue')['default']

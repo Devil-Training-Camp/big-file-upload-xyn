@@ -10,13 +10,10 @@ import { defineProps, defineEmits, ref, computed } from 'vue'
 const isUpload = ref<boolean>(true)
 const emit = defineEmits<{ (e: 'upload', value: boolean): void }>()
 
-const uploaded = defineProps({
-  isUploaded: {
-    type: Boolean,
-    default: false
-  }
-})
-// TODO 从父获取文件进度
+const props = defineProps<{
+  isUploaded: boolean;
+  uploadProgress: number;
+}>();
 
 // 根据上传进度更改文字 上传 或 继续，暂停不变
 const toggleUploadText = computed(() => {
@@ -25,8 +22,13 @@ const toggleUploadText = computed(() => {
 
 // 如果进度不为0，则开始显示文字，根据文件上传结束节点调换显示文字
 const toggleUploadedText = computed(() => {
-  return uploaded ? '上传中...' : '上传完成'
-})
+  if (props.uploadProgress > 0 && props.uploadProgress < 100) {
+    return '上传中...'
+  }
+  if (props.uploadProgress == 100) {
+    return '上传完成'
+  } 
+});
 
 function handleClick() {
   emit('upload', isUpload.value)
