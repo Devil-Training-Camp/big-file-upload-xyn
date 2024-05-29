@@ -1,9 +1,9 @@
 <template>
   <main>
     <FileReceive @file="handleFile" />
-    <span>{{ fileName }}</span>
-    <el-progress :percentage="uploadProgress"></el-progress>
-    <FileOperate @upload="handleClick" :isUploaded="isUploaded" :uploadProgress="uploadProgress" />
+    <span class="fileInfo">{{ fileName }}</span>
+    <el-progress class="progress" :percentage="uploadProgress"></el-progress>
+    <FileOperate @isPause="handleClick" :hasFile="hasFile" :uploadProgress="uploadProgress" />
   </main>
 </template>
 
@@ -21,7 +21,7 @@ let curFile = ref<UploadFile>()
 let isPaused = false
 let chunkIndex = 0
 let uploadProgress = ref<number>(0)
-let uploadTotalProgress = ref<number>(0)
+let hasFile = ref<boolean>(false)
 
 interface IFileChunk {
   file: Blob
@@ -35,43 +35,38 @@ interface IFileChunk {
 const handleFile = (f: UploadFile) => {
   curFile.value = f
   fileName.value = f.name
+  hasFile.value = true
 }
 
 // 点击上传时开始上传文件
 const handleClick = (upload: boolean) => {
   if (!curFile.value) {
-    // ElMessage.error('请点击选择或拖入需要上传的文件')
     alert('请点击选择或拖入需要上传的文件')
     return false
   }
   if (upload) {
+    isPaused = false
     uploadFile()
-    return true
+    return
   }
   isPaused = true
 }
 
 async function uploadFile() {
   // 文件分片
-  // 计算每一个分片的计算hash值用于判断是否进行上传
-  // 获取每一个文件上传分片 判断是否已经上传过，没上传的上传，之后更新进度
   const chunkList = getChunkList()
-  uploadTotalProgress.value = chunkList.length
   for (let i = chunkIndex; i < chunkList.length; i++) {
     if (isPaused) {
       chunkIndex = i
       break
     }
     const chunk = chunkList[i]
-    const hash = calculateHash(chunk.file)
+    const hash = await calculateHash(chunk.file)
     const isAlreadyUploaded = isExisted(await hash)
-    if (!isAlreadyUploaded) {
-      await uploadChunk(chunk)
+    if (!isAlreadyUploaded && (await uploadChunk(chunk))) {
+      uploadProgress.value = ((i + 1) / chunkList.length) * 100
     }
-    uploadProgress.value = ((i + 1) / chunkList.length) * 100
   }
-  // 文件上传成功 传递结束标志，更新进度
-  isUploaded.value = true
 }
 
 // 判断是否已经上传过
@@ -107,8 +102,8 @@ function calculateHash(file: Blob): Promise<string> {
 // 文件分片
 function getChunkList(): IFileChunk[] {
   let chunkList: IFileChunk[] = []
-  let start = 0,
-    end = 0
+  let start = 0
+  let end = 0
   let index = 0
   if (curFile.value?.raw == undefined || curFile.value?.size == undefined) {
     return []
@@ -130,10 +125,9 @@ function getChunkList(): IFileChunk[] {
 }
 
 // 上传分片到服务器
-async function uploadChunk(chunk: IFileChunk) {
+async function uploadChunk(chunk: IFileChunk): Promise<boolean> {
   const formData = new FormData()
   formData.append('chunk', chunk.file)
-  // TODO
   formData.append('start', chunk.start.toString())
   formData.append('end', chunk.end.toString())
 
@@ -147,11 +141,20 @@ async function uploadChunk(chunk: IFileChunk) {
       throw new Error('chunk上传失败')
     }
 
-    console.log('chunk上传成功')
+    return true
   } catch (error) {
     console.error('uploadChunk error:' + error)
+    return false
   }
 }
 </script>
 
-<style lang="less" scoped></style>
+<style lang="less" scoped>
+.fileInfo {
+  font-size: 13px;
+  margin: 5px 0;
+}
+.progress {
+  margin: 5px 0 0 0;
+}
+</style>

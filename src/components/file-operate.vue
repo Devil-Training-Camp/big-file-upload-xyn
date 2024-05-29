@@ -7,32 +7,38 @@
 <script setup lang="ts">
 import { defineProps, defineEmits, ref, computed } from 'vue'
 
-const isUpload = ref<boolean>(true)
-const emit = defineEmits<{ (e: 'upload', value: boolean): void }>()
+const isPause = ref<boolean>(false)
+const emit = defineEmits<{ (e: 'isPause', value: boolean): void }>()
 
 const props = defineProps<{
-  isUploaded: boolean;
-  uploadProgress: number;
-}>();
+  uploadProgress: number
+  hasFile: boolean
+}>()
 
-// 根据上传进度更改文字 上传 或 继续，暂停不变
 const toggleUploadText = computed(() => {
-  return isUpload.value ? '上传' : '暂停'
+  if(isPause.value && props.uploadProgress < 100){
+    return '暂停'
+  }
+  if (props.uploadProgress == 100) {
+    return '上传完成'
+  }
+  return  '上传'
 })
 
-// 如果进度不为0，则开始显示文字，根据文件上传结束节点调换显示文字
 const toggleUploadedText = computed(() => {
   if (props.uploadProgress > 0 && props.uploadProgress < 100) {
     return '上传中...'
   }
   if (props.uploadProgress == 100) {
     return '上传完成'
-  } 
-});
+  }
+})
 
 function handleClick() {
-  emit('upload', isUpload.value)
-  isUpload.value = !isUpload.value
+  if (props.hasFile && props.uploadProgress < 100) {
+    isPause.value = !isPause.value
+    emit('isPause', isPause.value)
+  }
 }
 </script>
 
