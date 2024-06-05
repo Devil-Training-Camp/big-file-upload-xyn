@@ -62,9 +62,10 @@ async function uploadFile() {
     }
     const chunk = chunkList[i]
     const hash = await calculateHash(chunk.file)
-    const isAlreadyUploaded = isExisted(await hash)
+    const isAlreadyUploaded = await isExisted(hash)
     if (!isAlreadyUploaded && (await uploadChunk(chunk))) {
-      uploadProgress.value = ((i + 1) / chunkList.length) * 100
+      // 限制进度显示小数点后低啊
+      uploadProgress.value = parseFloat((((i + 1) / chunkList.length) * 100).toFixed(2));
     }
   }
 }
