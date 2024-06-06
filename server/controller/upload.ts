@@ -9,6 +9,8 @@ const __dirname = path.dirname(__filename);
 
 export async function uploadChunk(ctx: Context) {
   const { files, body } = ctx.request;
+  
+  // 检查是否存在文件分片
   if (!files || !files.chunk) {
     ctx.throw(400, '分片不存在');
   }
@@ -29,10 +31,10 @@ export async function uploadChunk(ctx: Context) {
 
   // 定义保存分片的路径
   const chunkPath = path.join(uploadsDir, `chunk-${start}-${end}`);
-  
+
   try {
     // 保存分片到服务器
-    const reader = fs.createReadStream(chunkPath);
+    const reader = fs.createReadStream(chunk.filepath);
     const writer = fs.createWriteStream(chunkPath);
     reader.pipe(writer);
 

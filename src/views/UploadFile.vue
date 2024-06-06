@@ -8,21 +8,23 @@
 </template>
 
 <script setup lang="ts">
-import FileReceive from '../components/file-receive.vue'
-import FileOperate from '../components/file-operate.vue'
 import { ref } from 'vue'
 import type { UploadFile } from 'element-plus'
 import SparkMD5 from 'spark-md5'
+import FileReceive from '../components/file-receive.vue'
+import FileOperate from '../components/file-operate.vue'
 
-const fileName = ref<String>('')
+// 定义引用变量
+const fileName = ref<string>('')
 const isUploaded = ref<boolean>(false)
-const chunkSize = 1024 * 1024 * 1
-let curFile = ref<UploadFile>()
+const chunkSize = 1024 * 1024 * 1 // 分片大小为1MB
+let curFile = ref<UploadFile | null>(null)
 let isPaused = false
 let chunkIndex = 0
-let uploadProgress = ref<number>(0)
-let hasFile = ref<boolean>(false)
+const uploadProgress = ref<number>(0)
+const hasFile = ref<boolean>(false)
 
+// 定义文件分片接口
 interface IFileChunk {
   file: Blob
   chunkIndex: number
@@ -31,14 +33,14 @@ interface IFileChunk {
   end: number
 }
 
-// 接收文件
+// 接收文件处理
 const handleFile = (f: UploadFile) => {
   curFile.value = f
   fileName.value = f.name
   hasFile.value = true
 }
 
-// 点击上传时开始上传文件
+// 点击上传/暂停按钮处理
 const handleClick = (upload: boolean) => {
   if (!curFile.value) {
     alert('请点击选择或拖入需要上传的文件')
@@ -52,8 +54,8 @@ const handleClick = (upload: boolean) => {
   isPaused = true
 }
 
+// 上传文件
 async function uploadFile() {
-  // 文件分片
   const chunkList = getChunkList()
   for (let i = chunkIndex; i < chunkList.length; i++) {
     if (isPaused) {
@@ -64,25 +66,25 @@ async function uploadFile() {
     const hash = await calculateHash(chunk.file)
     const isAlreadyUploaded = await isExisted(hash)
     if (!isAlreadyUploaded && (await uploadChunk(chunk))) {
-      // 限制进度显示小数点后低啊
+      // 限制进度显示小数点后两位
       uploadProgress.value = parseFloat((((i + 1) / chunkList.length) * 100).toFixed(2));
     }
   }
 }
 
-// 判断是否已经上传过
+// 检查文件是否已经上传
 async function isExisted(hash: string): Promise<boolean> {
   try {
     const response = await fetch(`http://localhost:3000/checkHash?hash=${hash}`)
     const data = await response.json()
     return data.exists
   } catch (error) {
-    console.error('isExisted error:' + error)
+    console.error('isExisted error:', error)
     return false
   }
 }
 
-// 计算hash值
+// 计算文件哈希值
 function calculateHash(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -100,32 +102,25 @@ function calculateHash(file: Blob): Promise<string> {
   })
 }
 
-// 文件分片
+// 获取文件分片列表
 function getChunkList(): IFileChunk[] {
-  let chunkList: IFileChunk[] = []
+  const chunkList: IFileChunk[] = []
   let start = 0
-  let end = 0
   let index = 0
-  if (curFile.value?.raw == undefined || curFile.value?.size == undefined) {
-    return []
-  }
 
-  while (start <= curFile.value.raw.size) {
-    let curChunk = curFile.value.raw.slice(start, start + chunkSize)
-    index++
-    start += chunkSize
-    chunkList.push({
-      file: curChunk,
-      chunkIndex: index,
-      uploaded: false,
-      start: start,
-      end: start + chunkSize
-    })
+  if (curFile.value?.raw) {
+    const fileSize = curFile.value.raw.size
+    while (start < fileSize) {
+      const end = Math.min(start + chunkSize, fileSize)
+      const chunk = curFile.value.raw.slice(start, end)
+      chunkList.push({ file: chunk, chunkIndex: index++, uploaded: false, start, end })
+      start = end
+    }
   }
   return chunkList
 }
 
-// 上传分片到服务器
+// 上传文件分片到服务器
 async function uploadChunk(chunk: IFileChunk): Promise<boolean> {
   const formData = new FormData()
   formData.append('chunk', chunk.file)
@@ -144,7 +139,7 @@ async function uploadChunk(chunk: IFileChunk): Promise<boolean> {
 
     return true
   } catch (error) {
-    console.error('uploadChunk error:' + error)
+    console.error('uploadChunk error:', error)
     return false
   }
 }
