@@ -1,3 +1,4 @@
+// 为什么要把这个文件保存进来？
 (function (factory) {
   if (typeof exports === 'object') {
     // Node/CommonJS

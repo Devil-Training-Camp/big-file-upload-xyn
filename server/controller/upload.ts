@@ -16,6 +16,7 @@ export async function uploadChunk(ctx: Context) {
   }
 
   const chunk = files.chunk as any;
+  // 为什么需要 start 和 end 两个参数的？感觉用一个 index 就能覆盖了吧？
   const { start, end } = body;
 
   // 确保 start 和 end 是定义的
@@ -30,10 +31,12 @@ export async function uploadChunk(ctx: Context) {
   }
 
   // 定义保存分片的路径
+  // 保存文件的路径上不需要加上 hash 吗？那上传多份文件岂不是容易冲突？
   const chunkPath = path.join(uploadsDir, `chunk-${start}-${end}`);
 
   try {
     // 保存分片到服务器
+    // good case
     const reader = fs.createReadStream(chunk.filepath);
     const writer = fs.createWriteStream(chunkPath);
     reader.pipe(writer);
