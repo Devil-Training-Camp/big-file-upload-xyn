@@ -6,6 +6,8 @@ import { uploadChunk } from './upload'
 import { checkHash } from './hash'
 import cors from '@koa/cors';
 
+// server/controller/uploads/chunk-1048576-2097152 这个文件是啥？
+// 为什么会被上传到 git？
 const app = new Koa()
 const router = new Router();
 

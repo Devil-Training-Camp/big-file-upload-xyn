@@ -1,6 +1,7 @@
 import { Context } from 'koa'
 import fs from 'fs'
 import path from 'path'
+// 这个类并没有用到
 import SparkMD5 from 'spark-md5'
 import { fileURLToPath } from 'url'
 
@@ -35,6 +36,9 @@ export async function checkHash(ctx: Context) {
   const hashes = readHashes()
 
   // 检查哈希值是否存在
+  // 没懂，这是通过 hash 来判断文件是否存在？这不合理吧？
+  // 比如， hashFilePath 有相关记录，但实际文件已经被删除了，这不就 gg 了？
+  // 更好的方式应该跟教学项目那样，直接以 hash 值命名 chunk 文件，之后保存下来
   if (hashes[hash]) {
     ctx.body = { exists: true, filePath: hashes[hash] }
   } else {
@@ -43,6 +47,7 @@ export async function checkHash(ctx: Context) {
 }
 
 // 存储哈希值
+// 翻了一下，这个方法似乎并没有被使用到？
 export async function storeHash(ctx: Context) {
   const { hash, filePath } = ctx.request.body
   if (!hash || !filePath || typeof hash !== 'string' || typeof filePath !== 'string') {
