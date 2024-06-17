@@ -1,7 +1,6 @@
 import { Context } from 'koa'
 import fs from 'fs'
 import path from 'path'
-import SparkMD5 from 'spark-md5'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -42,18 +41,3 @@ export async function checkHash(ctx: Context) {
   }
 }
 
-// 存储哈希值
-export async function storeHash(ctx: Context) {
-  const { hash, filePath } = ctx.request.body
-  if (!hash || !filePath || typeof hash !== 'string' || typeof filePath !== 'string') {
-    ctx.throw(400, 'Invalid hash or file path')
-  }
-
-  const hashes = readHashes()
-
-  // 存储新的哈希值和文件路径
-  hashes[hash] = filePath
-  writeHashes(hashes)
-
-  ctx.body = { message: 'Hash stored successfully' }
-}

@@ -16,6 +16,7 @@ export async function uploadChunk(ctx: Context) {
   }
 
   const chunk = files.chunk as any;
+  // index代替start和end
   const { start, end } = body;
 
   // 确保 start 和 end 是定义的
@@ -29,6 +30,7 @@ export async function uploadChunk(ctx: Context) {
     fs.mkdirSync(uploadsDir);
   }
 
+  // hash值来当文件名进行唯一标记
   // 定义保存分片的路径
   const chunkPath = path.join(uploadsDir, `chunk-${start}-${end}`);
 

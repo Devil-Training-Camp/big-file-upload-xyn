@@ -13,25 +13,17 @@ import type { UploadFile } from 'element-plus'
 import SparkMD5 from 'spark-md5'
 import FileReceive from '../components/file-receive.vue'
 import FileOperate from '../components/file-operate.vue'
+import {isExisted, uploadChunk} from '../service/file'
+import type { IFileChunk } from '../types/interface'
 
 // 定义引用变量
 const fileName = ref<string>('')
-const isUploaded = ref<boolean>(false)
 const chunkSize = 1024 * 1024 * 1 // 分片大小为1MB
 let curFile = ref<UploadFile | null>(null)
 let isPaused = false
 let chunkIndex = 0
 const uploadProgress = ref<number>(0)
 const hasFile = ref<boolean>(false)
-
-// 定义文件分片接口
-interface IFileChunk {
-  file: Blob
-  chunkIndex: number
-  uploaded: boolean
-  start: number
-  end: number
-}
 
 // 接收文件处理
 const handleFile = (f: UploadFile) => {
@@ -42,10 +34,6 @@ const handleFile = (f: UploadFile) => {
 
 // 点击上传/暂停按钮处理
 const handleClick = (upload: boolean) => {
-  if (!curFile.value) {
-    alert('请点击选择或拖入需要上传的文件')
-    return false
-  }
   if (upload) {
     isPaused = false
     uploadFile()
@@ -56,6 +44,10 @@ const handleClick = (upload: boolean) => {
 
 // 上传文件
 async function uploadFile() {
+  if (!curFile.value) {
+    alert('请点击选择或拖入需要上传的文件')
+    return false
+  }
   const chunkList = getChunkList()
   for (let i = chunkIndex; i < chunkList.length; i++) {
     if (isPaused) {
@@ -65,22 +57,10 @@ async function uploadFile() {
     const chunk = chunkList[i]
     const hash = await calculateHash(chunk.file)
     const isAlreadyUploaded = await isExisted(hash)
-    if (!isAlreadyUploaded && (await uploadChunk(chunk))) {
+    if (!isAlreadyUploaded && (await uploadChunk(chunk, hash))) {
       // 限制进度显示小数点后两位
       uploadProgress.value = parseFloat((((i + 1) / chunkList.length) * 100).toFixed(2));
     }
-  }
-}
-
-// 检查文件是否已经上传
-async function isExisted(hash: string): Promise<boolean> {
-  try {
-    const response = await fetch(`http://localhost:3000/checkHash?hash=${hash}`)
-    const data = await response.json()
-    return data.exists
-  } catch (error) {
-    console.error('isExisted error:', error)
-    return false
   }
 }
 
@@ -102,6 +82,7 @@ function calculateHash(file: Blob): Promise<string> {
   })
 }
 
+
 // 获取文件分片列表
 function getChunkList(): IFileChunk[] {
   const chunkList: IFileChunk[] = []
@@ -113,36 +94,13 @@ function getChunkList(): IFileChunk[] {
     while (start < fileSize) {
       const end = Math.min(start + chunkSize, fileSize)
       const chunk = curFile.value.raw.slice(start, end)
-      chunkList.push({ file: chunk, chunkIndex: index++, uploaded: false, start, end })
+      chunkList.push({ file: chunk, chunkIndex: index++, uploaded: false, start, end})
       start = end
     }
   }
   return chunkList
 }
 
-// 上传文件分片到服务器
-async function uploadChunk(chunk: IFileChunk): Promise<boolean> {
-  const formData = new FormData()
-  formData.append('chunk', chunk.file)
-  formData.append('start', chunk.start.toString())
-  formData.append('end', chunk.end.toString())
-
-  try {
-    const response = await fetch('http://localhost:3000/uploadChunk', {
-      method: 'POST',
-      body: formData
-    })
-
-    if (!response.ok) {
-      throw new Error('chunk上传失败')
-    }
-
-    return true
-  } catch (error) {
-    console.error('uploadChunk error:', error)
-    return false
-  }
-}
 </script>
 
 <style lang="less" scoped>
