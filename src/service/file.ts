@@ -5,8 +5,7 @@ export function uploadChunk(
 ): Promise<boolean> {
     const formData = new FormData();
     formData.append('chunk', chunk.file);
-    formData.append('start', chunk.start.toString());
-    formData.append('end', chunk.end.toString());
+    formData.append('index', chunk.chunkIndex.toString());
     if (hash) {
         formData.append('hash', hash);
     }

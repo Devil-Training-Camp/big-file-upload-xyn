@@ -67,21 +67,24 @@ async function uploadFile() {
 // 计算文件哈希值
 function calculateHash(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      if (event.target) {
-        const arrayBuffer = event.target.result as ArrayBuffer
-        const spark = new SparkMD5.ArrayBuffer()
-        spark.append(arrayBuffer)
-        resolve(spark.end())
+    const worker = new Worker('hashWorker.ts');
+    worker.postMessage(file);
+    worker.onmessage = (e: MessageEvent) => {
+      const { hash, error } = e.data;
+      if (hash) {
+        resolve(hash);
+        worker.terminate();
+      } else if (error) {
+        reject(new Error(error));
+        worker.terminate();
       }
-      reject(new Error('文件为空'))
-    }
-    reader.onerror = reject
-    reader.readAsArrayBuffer(file)
-  })
+    };
+    worker.onerror = (event: ErrorEvent) => {
+      worker.terminate();
+      reject(event.error);
+    };
+  });
 }
-
 
 // 获取文件分片列表
 function getChunkList(): IFileChunk[] {
@@ -94,7 +97,7 @@ function getChunkList(): IFileChunk[] {
     while (start < fileSize) {
       const end = Math.min(start + chunkSize, fileSize)
       const chunk = curFile.value.raw.slice(start, end)
-      chunkList.push({ file: chunk, chunkIndex: index++, uploaded: false, start, end})
+      chunkList.push({ file: chunk, chunkIndex: index++, uploaded: false})
       start = end
     }
   }

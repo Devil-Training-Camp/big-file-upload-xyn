@@ -16,14 +16,8 @@ export async function uploadChunk(ctx: Context) {
   }
 
   const chunk = files.chunk as any;
-  // index代替start和end
-  const { start, end } = body;
-
-  // 确保 start 和 end 是定义的
-  if (typeof start === 'undefined' || typeof end === 'undefined') {
-    ctx.throw(400, 'start 或 end 参数未定义');
-  }
-
+  const hash = files.hash;
+  
   // 确保 uploads 目录存在
   const uploadsDir = path.join(__dirname, 'uploads');
   if (!fs.existsSync(uploadsDir)) {
@@ -32,7 +26,7 @@ export async function uploadChunk(ctx: Context) {
 
   // hash值来当文件名进行唯一标记
   // 定义保存分片的路径
-  const chunkPath = path.join(uploadsDir, `chunk-${start}-${end}`);
+  const chunkPath = path.join(uploadsDir, `chunk-${hash}`);
 
   try {
     // 保存分片到服务器

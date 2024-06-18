@@ -3,6 +3,4 @@ export interface IFileChunk {
   file: Blob
   chunkIndex: number
   uploaded: boolean
-  start: number
-  end: number
 }
