@@ -35,6 +35,10 @@ const toggleUploadedText = computed(() => {
 })
 
 function handleClick() {
+  if (!props.hasFile) {
+    alert('请点击选择或拖入需要上传的文件')
+    return
+  }
   if (props.hasFile && props.uploadProgress < 100) {
     isPause.value = !isPause.value
     emit('isPause', isPause.value)

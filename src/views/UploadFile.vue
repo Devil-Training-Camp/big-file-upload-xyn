@@ -10,7 +10,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { UploadFile } from 'element-plus'
-import SparkMD5 from 'spark-md5'
 import FileReceive from '../components/file-receive.vue'
 import FileOperate from '../components/file-operate.vue'
 import {isExisted, uploadChunk} from '../service/file'
@@ -44,10 +43,6 @@ const handleClick = (upload: boolean) => {
 
 // 上传文件
 async function uploadFile() {
-  if (!curFile.value) {
-    alert('请点击选择或拖入需要上传的文件')
-    return false
-  }
   const chunkList = getChunkList()
   for (let i = chunkIndex; i < chunkList.length; i++) {
     if (isPaused) {
