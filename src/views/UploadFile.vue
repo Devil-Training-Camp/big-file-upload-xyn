@@ -14,6 +14,7 @@ import FileReceive from '../components/file-receive.vue'
 import FileOperate from '../components/file-operate.vue'
 import {isExisted, uploadChunk} from '../service/file'
 import type { IFileChunk } from '../types/interface'
+import Worker from "../utils/hashWorker.ts?worker";
 
 // 定义引用变量
 const fileName = ref<string>('')
@@ -52,17 +53,19 @@ async function uploadFile() {
     const chunk = chunkList[i]
     const hash = await calculateHash(chunk.file)
     const isAlreadyUploaded = await isExisted(hash)
-    if (!isAlreadyUploaded && (await uploadChunk(chunk, hash))) {
-      // 限制进度显示小数点后两位
-      uploadProgress.value = parseFloat((((i + 1) / chunkList.length) * 100).toFixed(2));
+    if (!isAlreadyUploaded && !(await uploadChunk(chunk, hash))) {
+      alert("文件上传失败")
+      return;
     }
+    // 限制进度显示小数点后两位
+    uploadProgress.value = parseFloat((((i + 1) / chunkList.length) * 100).toFixed(2));
   }
 }
 
 // 计算文件哈希值
 function calculateHash(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
-    const worker = new Worker('hashWorker.ts');
+    const worker = new Worker();
     worker.postMessage(file);
     worker.onmessage = (e: MessageEvent) => {
       const { hash, error } = e.data;
