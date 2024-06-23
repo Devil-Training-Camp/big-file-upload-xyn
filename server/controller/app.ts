@@ -20,6 +20,8 @@ router.get('/checkHash', checkHash)
 // 绑定文件分片上传路由
 router.post('/uploadChunk', uploadChunk)
 
+// 好像并没有吧文件分片合并还原成原始文件的逻辑？
+
 app.use(router.routes()).use(router.allowedMethods())
 
 export default app

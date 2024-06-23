@@ -15,6 +15,7 @@ const props = defineProps<{
   hasFile: boolean
 }>()
 
+// 这里应该是 btnOperateText
 const toggleUploadText = computed(() => {
   if(isPause.value && props.uploadProgress < 100){
     return '暂停'
@@ -25,6 +26,7 @@ const toggleUploadText = computed(() => {
   return  '上传'
 })
 
+// 这里应该是 fileUploadStateText
 const toggleUploadedText = computed(() => {
   if (props.uploadProgress > 0 && props.uploadProgress < 100) {
     return '上传中...'
