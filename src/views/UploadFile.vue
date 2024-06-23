@@ -1,5 +1,7 @@
 <template>
   <main>
+    <!-- 这个 dom 结构清晰了很多 -->
+     <!-- 但是看起来还不支持多文件上传？ -->
     <FileReceive @file="handleFile" />
     <span class="fileInfo">{{ fileName }}</span>
     <el-progress class="progress" :percentage="uploadProgress"></el-progress>
@@ -33,6 +35,7 @@ const handleFile = (f: UploadFile) => {
 }
 
 // 点击上传/暂停按钮处理
+// 这个 click 名字太泛化了，应该取一个别的名字，比如 handlePause
 const handleClick = (upload: boolean) => {
   if (upload) {
     isPaused = false
@@ -53,6 +56,7 @@ async function uploadFile() {
     const chunk = chunkList[i]
     const hash = await calculateHash(chunk.file)
     const isAlreadyUploaded = await isExisted(hash)
+    // 这里还是串行上传，应该改成并行，通过并发限制器来控制频率，可以找其他同学了解下具体实现原理。
     if (!isAlreadyUploaded && !(await uploadChunk(chunk, hash))) {
       alert("文件上传失败")
       return;
@@ -63,6 +67,7 @@ async function uploadFile() {
 }
 
 // 计算文件哈希值
+// 这个函数抽出去，完全没必要放在组件里
 function calculateHash(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const worker = new Worker();
@@ -85,6 +90,7 @@ function calculateHash(file: Blob): Promise<string> {
 }
 
 // 获取文件分片列表
+// 这个函数也抽出去
 function getChunkList(): IFileChunk[] {
   const chunkList: IFileChunk[] = []
   let start = 0
