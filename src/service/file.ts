@@ -1,4 +1,5 @@
 import type { IFileChunk } from '../types/interface';
+
 export function uploadChunk(
     chunk: IFileChunk,
     hash?: string
