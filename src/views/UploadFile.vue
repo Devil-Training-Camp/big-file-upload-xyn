@@ -1,7 +1,8 @@
 <template>
   <main>
     <!-- 这个 dom 结构清晰了很多 -->
-     <!--TODO 多文件上传  但是看起来还不支持多文件上传？ -->
+     <!--TODO 多文件上传 -->
+     <!-- 但是看起来还不支持多文件上传？ --> 
     <FileReceive @file="handleFile" />
     <span class="fileInfo">{{ fileName }}</span>
     <el-progress class="progress" :percentage="uploadProgress"></el-progress>
@@ -54,7 +55,8 @@ async function uploadFile() {
     const chunk = chunkList[i]
     const hash = await calculateHash(chunk.file)
     const isAlreadyUploaded = await isExisted(hash)
-    //TODO 串行改并行 这里还是串行上传，应该改成并行，通过并发限制器来控制频率，可以找其他同学了解下具体实现原理。
+    //TODO 串行改并行 
+    // 这里还是串行上传，应该改成并行，通过并发限制器来控制频率，可以找其他同学了解下具体实现原理。
     if (!isAlreadyUploaded && !(await uploadChunk(chunk, hash))) {
       alert("文件上传失败")
       return;

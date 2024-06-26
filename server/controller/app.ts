@@ -4,6 +4,7 @@ import { koaBody } from 'koa-body'
 import Router from 'koa-router';
 import { uploadChunk } from './upload'
 import { checkHash } from './hash'
+import { chunkMerge } from './merge'
 import cors from '@koa/cors';
 
 const app = new Koa()
@@ -20,8 +21,9 @@ router.get('/checkHash', checkHash)
 // 绑定文件分片上传路由
 router.post('/uploadChunk', uploadChunk)
 
-//TODO 文件分片后合并文件逻辑
 // 好像并没有吧文件分片合并还原成原始文件的逻辑？
+// 文件分片后合并文件逻辑接口
+router.post('/chunkMerge', chunkMerge)
 
 app.use(router.routes()).use(router.allowedMethods())
 
