@@ -1,7 +1,10 @@
 import fs from 'fs';
 import { Context } from 'koa';
 import path from 'path';
+import { fileURLToPath } from 'url'
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const uploadsDir = path.join(__dirname, 'uploads');
 
 export const checkHash = (ctx: Context) => {

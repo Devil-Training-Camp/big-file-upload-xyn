@@ -77,12 +77,11 @@ async function uploadFiles() {
         fileObj.progress = parseFloat((((i + 1) / chunkList.length) * 100).toFixed(2))
         updateTotalProgress()
       }
-      
-      await chunkMerge(fileObj.hash, fileObj.file.name)
-
     } else {
-      throw new Error("File raw error when upload")
+      throw new Error("File error when upload")
     }
+
+    await chunkMerge(fileObj.hash, fileObj.file.name)
   })
 
   await Promise.all(uploadTasks)
