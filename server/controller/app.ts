@@ -15,14 +15,13 @@ app.use(koaBody({ multipart: true, json: true }))
 
 app.use(cors())
 
-// 绑定哈希值检查路由
+// 唯一性检查
 router.get('/checkHash', checkHash)
 
-// 绑定文件分片上传路由
+// 文件上传
 router.post('/uploadChunk', uploadChunk)
 
-// 好像并没有吧文件分片合并还原成原始文件的逻辑？
-// 文件分片后合并文件逻辑接口
+// 文件分片后合并文件
 router.post('/chunkMerge', chunkMerge)
 
 app.use(router.routes()).use(router.allowedMethods())

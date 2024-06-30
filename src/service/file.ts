@@ -24,3 +24,19 @@ export function isExisted(
         method: 'GET'
     }).then(response => response.ok);
 }
+
+export function chunkMerge(
+    hash: string,
+    fileName: string
+): Promise<boolean> {
+    const formData = new FormData();
+    formData.append('hash', hash);
+    formData.append('fileName', fileName);
+    if (hash) {
+        formData.append('hash', hash);
+    }
+    return fetch(`http://localhost:3000/chunkMerge`, {
+        method: 'POST',
+        body: formData
+    }).then(response => response.ok);
+}
