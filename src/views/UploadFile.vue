@@ -18,6 +18,7 @@ import FileOperate from '../components/file-operate.vue'
 import { isExisted, uploadChunk, chunkMerge } from '../service/file'
 import { calculateHash } from '../utils/calculateHash'
 import { getChunkList } from '../utils/getChunkList'
+import pLimit from 'p-limit'
 
 const files = ref<Array<IUploadFileArray & { chunkIndex: number }>>([])
 const isPaused = ref<boolean>(false)
@@ -58,34 +59,37 @@ const handlePause = (upload: boolean) => {
 
 // 上传文件
 async function uploadFiles() {
-  const uploadTasks = files.value.map(async (fileObj) => {
-    if (fileObj.file.raw) {
-      const chunkList = getChunkList(fileObj.file)
-      for (let i = fileObj.chunkIndex; i < chunkList.length; i++) {
-        if (isPaused.value) {
-          fileObj.chunkIndex = i
-          break
-        }
-        const chunk = chunkList[i]
-        const hash = await calculateHash(chunk.file)
-        const isAlreadyUploaded = await isExisted(hash)
-        if (!isAlreadyUploaded && !(await uploadChunk(chunk, hash))) {
-          alert("文件上传失败")
-          return
-        }
-        // 限制进度显示小数点后两位
-        fileObj.progress = parseFloat((((i + 1) / chunkList.length) * 100).toFixed(2))
-        updateTotalProgress()
-      }
-    } else {
-      throw new Error("File error when upload")
-    }
-
-    await chunkMerge(fileObj.hash, fileObj.file.name)
-  })
-
+  const limit = pLimit(3) // 并发限制为3
+  const uploadTasks = files.value.map(fileObj => limit(() => uploadFile(fileObj)))
   await Promise.all(uploadTasks)
   updateTotalProgress()
+}
+
+// 上传单个文件
+const uploadFile = async (fileObj: IUploadFileArray & { chunkIndex: number }) => {
+  if (fileObj.file.raw) {
+    const chunkList = getChunkList(fileObj.file)
+    for (let i = fileObj.chunkIndex; i < chunkList.length; i++) {
+      if (isPaused.value) {
+        fileObj.chunkIndex = i
+        break
+      }
+      const chunk = chunkList[i]
+      const hash = await calculateHash(chunk.file)
+      const isAlreadyUploaded = await isExisted(hash)
+      if (!isAlreadyUploaded && !(await uploadChunk(chunk, hash))) {
+        alert("文件上传失败")
+        return
+      }
+      // 限制进度显示小数点后两位
+      fileObj.progress = parseFloat((((i + 1) / chunkList.length) * 100).toFixed(2))
+      updateTotalProgress()
+    }
+  } else {
+    throw new Error("File error when upload")
+  }
+
+  await chunkMerge(fileObj.hash, fileObj.file.name)
 }
 
 // 更新总进度
