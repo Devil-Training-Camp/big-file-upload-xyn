@@ -18,6 +18,7 @@ import FileOperate from '../components/file-operate.vue'
 import { isExisted, uploadChunk, chunkMerge } from '../service/file'
 import { calculateHash } from '../utils/calculateHash'
 import { getChunkList } from '../utils/getChunkList'
+// 这算是一个 good Pratice，回头可以总结下这个包的用法，做个分享
 import pLimit from 'p-limit'
 
 const files = ref<Array<IUploadFileArray & { chunkIndex: number }>>([])

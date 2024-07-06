@@ -18,6 +18,7 @@ export async function uploadChunk(ctx: Context) {
   const { hash, index } = body;
 
   const uploadsDir = path.join(__dirname, 'uploads');
+  // 这里可以用 mkdir 的 recursive 参数，递归创建目录，不用检测连词
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir);
   }
