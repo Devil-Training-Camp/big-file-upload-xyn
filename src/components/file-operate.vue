@@ -1,7 +1,7 @@
 <template>
   <div class="submit" @click="handleClick()">
-    <el-button type="success" round>{{ toggleUploadText }}</el-button>
-    <span class="uploadText">{{ toggleUploadedText }}</span>
+    <el-button type="success" round>{{ btnOperateText }}</el-button>
+    <span class="uploadText">{{ fileUploadStateText }}</span>
   </div>
 </template>
 <script setup lang="ts">
@@ -15,7 +15,8 @@ const props = defineProps<{
   hasFile: boolean
 }>()
 
-const toggleUploadText = computed(() => {
+// 这里应该是 btnOperateText
+const btnOperateText = computed(() => {
   if(isPause.value && props.uploadProgress < 100){
     return '暂停'
   }
@@ -25,7 +26,8 @@ const toggleUploadText = computed(() => {
   return  '上传'
 })
 
-const toggleUploadedText = computed(() => {
+// 这里应该是 fileUploadStateText
+const fileUploadStateText = computed(() => {
   if (props.uploadProgress > 0 && props.uploadProgress < 100) {
     return '上传中...'
   }

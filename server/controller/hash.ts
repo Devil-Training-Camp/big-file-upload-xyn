@@ -1,43 +1,36 @@
-import { Context } from 'koa'
-import fs from 'fs'
-import path from 'path'
+import fs from 'fs';
+import { Context } from 'koa';
+import path from 'path';
 import { fileURLToPath } from 'url'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, 'uploads');
 
-const hashFilePath = path.join(__dirname, 'fileHashes.json')
+export const checkHash = (ctx: Context) => {
+  const { hash } = ctx.query;
 
-// 初始化哈希存储文件
-if (!fs.existsSync(hashFilePath)) {
-  fs.writeFileSync(hashFilePath, JSON.stringify({}))
-}
-
-// 读取哈希存储文件
-function readHashes() {
-  const data = fs.readFileSync(hashFilePath, 'utf-8')
-  return JSON.parse(data)
-}
-
-// 写入哈希存储文件
-function writeHashes(hashes: { [key: string]: string }) {
-  fs.writeFileSync(hashFilePath, JSON.stringify(hashes, null, 2))
-}
-
-// 检查哈希值是否存在并存储
-export async function checkHash(ctx: Context) {
-  const { hash } = ctx.query
-  if (!hash || typeof hash !== 'string') {
-    ctx.throw(400, 'Invalid hash')
+  // 这里为啥是 Array.isArray 判断？
+  // 理论上判断是否为 string 比较好？
+  if (!hash || Array.isArray(hash)) {
+    ctx.status = 400;
+    ctx.body = { exists: false};
+    return;
   }
 
-  const hashes = readHashes()
+  const chunkDir = path.join(uploadsDir, hash);
 
-  // 检查哈希值是否存在
-  if (hashes[hash]) {
-    ctx.body = { exists: true, filePath: hashes[hash] }
-  } else {
-    ctx.body = { exists: false }
+  try {
+    // 所有文件同步操作都改成异步操作
+    if (fs.existsSync(chunkDir)) {
+      const chunks = fs.readdirSync(chunkDir).map(chunk => parseInt(chunk.split('-')[1]));
+      ctx.body = { exists: true, chunks };
+    } else {
+      ctx.body = { exists: false };
+    }
+    // 这种错误信息处理，最好抽血一下，通过中间件实现
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { exists: false, error: error.message };
   }
 }
-

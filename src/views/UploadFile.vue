@@ -1,107 +1,104 @@
 <template>
   <main>
-    <FileReceive @file="handleFile" />
-    <span class="fileInfo">{{ fileName }}</span>
-    <el-progress class="progress" :percentage="uploadProgress"></el-progress>
-    <FileOperate @isPause="handleClick" :hasFile="hasFile" :uploadProgress="uploadProgress" />
+    <FileReceive @file="handleFiles" multiple />
+    <div v-for="(curfile, index) in files" :key="index">
+      <span class="fileInfo">{{ curfile.file.name }}</span>
+      <el-progress class="progress" :percentage="curfile.progress"></el-progress>
+    </div>
+    <FileOperate @isPause="handlePause" :hasFile="hasFile" :uploadProgress="totalProgress"></FileOperate>
   </main>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { UploadFile } from 'element-plus'
+import type { IUploadFileArray } from '../types/interface'
 import FileReceive from '../components/file-receive.vue'
 import FileOperate from '../components/file-operate.vue'
-import {isExisted, uploadChunk} from '../service/file'
-import type { IFileChunk } from '../types/interface'
-import Worker from "../utils/hashWorker.ts?worker";
+import { isExisted, uploadChunk, chunkMerge } from '../service/file'
+import { calculateHash } from '../utils/calculateHash'
+import { getChunkList } from '../utils/getChunkList'
+// 这算是一个 good Pratice，回头可以总结下这个包的用法，做个分享
+import pLimit from 'p-limit'
 
-// 定义引用变量
-const fileName = ref<string>('')
-const chunkSize = 1024 * 1024 * 1 // 分片大小为1MB
-let curFile = ref<UploadFile | null>(null)
-let isPaused = false
-let chunkIndex = 0
-const uploadProgress = ref<number>(0)
+const files = ref<Array<IUploadFileArray & { chunkIndex: number }>>([])
+const isPaused = ref<boolean>(false)
 const hasFile = ref<boolean>(false)
+const totalProgress = ref<number>(0)
 
-// 接收文件处理
-const handleFile = (f: UploadFile) => {
-  curFile.value = f
-  fileName.value = f.name
-  hasFile.value = true
+// 接收文件
+const handleFiles = async (uploadedFiles: UploadFile | UploadFile[]) => {
+  let fileList: UploadFile[] = []
+
+  if (Array.isArray(uploadedFiles)) {
+    fileList = uploadedFiles
+  } else {
+    fileList.push(uploadedFiles)
+  }
+
+  const fileObjects = await Promise.all(fileList.map(async file => {
+    if (file.raw) {
+      const hash = await calculateHash(file.raw as Blob)
+      return { file, progress: 0, hash, chunkIndex: 0 }
+    }
+    throw new Error("File raw error when handleFiles")
+  }))
+  
+  files.value = fileObjects
+  hasFile.value = files.value.length > 0
 }
 
-// 点击上传/暂停按钮处理
-const handleClick = (upload: boolean) => {
+// 暂停上传
+const handlePause = (upload: boolean) => {
   if (upload) {
-    isPaused = false
-    uploadFile()
+    isPaused.value = false
+    uploadFiles()
     return
   }
-  isPaused = true
+  isPaused.value = true
 }
 
 // 上传文件
-async function uploadFile() {
-  const chunkList = getChunkList()
-  for (let i = chunkIndex; i < chunkList.length; i++) {
-    if (isPaused) {
-      chunkIndex = i
-      break
-    }
-    const chunk = chunkList[i]
-    const hash = await calculateHash(chunk.file)
-    const isAlreadyUploaded = await isExisted(hash)
-    if (!isAlreadyUploaded && !(await uploadChunk(chunk, hash))) {
-      alert("文件上传失败")
-      return;
-    }
-    // 限制进度显示小数点后两位
-    uploadProgress.value = parseFloat((((i + 1) / chunkList.length) * 100).toFixed(2));
-  }
+async function uploadFiles() {
+  const limit = pLimit(3) // 并发限制为3
+  const uploadTasks = files.value.map(fileObj => limit(() => uploadFile(fileObj)))
+  await Promise.all(uploadTasks)
+  updateTotalProgress()
 }
 
-// 计算文件哈希值
-function calculateHash(file: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker();
-    worker.postMessage(file);
-    worker.onmessage = (e: MessageEvent) => {
-      const { hash, error } = e.data;
-      if (hash) {
-        resolve(hash);
-        worker.terminate();
-      } else if (error) {
-        reject(new Error(error));
-        worker.terminate();
+// 上传单个文件
+const uploadFile = async (fileObj: IUploadFileArray & { chunkIndex: number }) => {
+  if (fileObj.file.raw) {
+    const chunkList = getChunkList(fileObj.file)
+    for (let i = fileObj.chunkIndex; i < chunkList.length; i++) {
+      if (isPaused.value) {
+        fileObj.chunkIndex = i
+        break
       }
-    };
-    worker.onerror = (event: ErrorEvent) => {
-      worker.terminate();
-      reject(event.error);
-    };
-  });
-}
-
-// 获取文件分片列表
-function getChunkList(): IFileChunk[] {
-  const chunkList: IFileChunk[] = []
-  let start = 0
-  let index = 0
-
-  if (curFile.value?.raw) {
-    const fileSize = curFile.value.raw.size
-    while (start < fileSize) {
-      const end = Math.min(start + chunkSize, fileSize)
-      const chunk = curFile.value.raw.slice(start, end)
-      chunkList.push({ file: chunk, chunkIndex: index++, uploaded: false})
-      start = end
+      const chunk = chunkList[i]
+      const hash = await calculateHash(chunk.file)
+      const isAlreadyUploaded = await isExisted(hash)
+      if (!isAlreadyUploaded && !(await uploadChunk(chunk, hash))) {
+        alert("文件上传失败")
+        return
+      }
+      // 限制进度显示小数点后两位
+      fileObj.progress = parseFloat((((i + 1) / chunkList.length) * 100).toFixed(2))
+      updateTotalProgress()
     }
+  } else {
+    throw new Error("File error when upload")
   }
-  return chunkList
+
+  await chunkMerge(fileObj.hash, fileObj.file.name)
 }
 
+// 更新总进度
+const updateTotalProgress = () => {
+  totalProgress.value = parseFloat(
+    (files.value.reduce((acc, file) => acc + file.progress, 0) / files.value.length).toFixed(2)
+  )
+}
 </script>
 
 <style lang="less" scoped>
